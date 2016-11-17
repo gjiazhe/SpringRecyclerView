@@ -16,13 +16,15 @@ import android.view.animation.Interpolator;
 import android.view.animation.Transformation;
 
 /**
+ * A RecyclerView With Spring Effect.
+ *
  * Created by gjz on 17/11/2016.
  */
 
 public class SpringRecyclerView extends TempRecyclerView {
     private static final int STATE_NORMAL = 0;
-    private static final int STATE_DRAG_TOP = 1;
-    private static final int STATE_DRAG_BOTTOM = 2;
+    private static final int STATE_DRAG_TOP_OR_LEFT = 1;
+    private static final int STATE_DRAG_BOTTOM_OR_RIGHT = 2;
     private static final int STATE_SPRING_BACK = 3;
     private static final int STATE_FLING = 4;
     private int mState = STATE_NORMAL;
@@ -35,9 +37,10 @@ public class SpringRecyclerView extends TempRecyclerView {
     private static final int INVALID_POINTER = -1;
 
     private final int mTouchSlop;
-    private float mLastMotionY;
+    private int mOrientation; // horizontal or vertical
+    private float mLastMotionPos; // x-coordinate or y-coordinate of last event, base on mOrientation
     private float mFrom;
-    private float mOffsetY;
+    private float mOffset;
     private int mActivePointerId = INVALID_POINTER;
 
     private boolean mEnableSpringEffectWhenDrag;
@@ -83,14 +86,14 @@ public class SpringRecyclerView extends TempRecyclerView {
         final int action = MotionEventCompat.getActionMasked(ev);
         switch (action) {
             case MotionEvent.ACTION_DOWN:
-                mLastMotionY = ev.getY();
+                mLastMotionPos = mOrientation == VERTICAL ? ev.getY() : ev.getX();
                 mActivePointerId = ev.getPointerId(0);
                 // If STATE_SPRING_BACK, we intercept the event and stop the animation.
                 // If STATE_FLING, we do not intercept and allow the animation to finish.
                 if (mState == STATE_SPRING_BACK) {
-                    if (mOffsetY != 0) {
+                    if (mOffset != 0) {
                         clearAnimation();
-                        setState(mOffsetY > 0 ? STATE_DRAG_TOP : STATE_DRAG_BOTTOM);
+                        setState(mOffset > 0 ? STATE_DRAG_TOP_OR_LEFT : STATE_DRAG_BOTTOM_OR_RIGHT);
                     } else {
                         setState(STATE_NORMAL);
                     }
@@ -105,29 +108,33 @@ public class SpringRecyclerView extends TempRecyclerView {
                 if (pointerIndex == -1) {
                     break;
                 }
-                final float y = ev.getY(pointerIndex);
-                final float yDiff = y - mLastMotionY;
-                mLastMotionY = y;
+                final float pos = mOrientation == VERTICAL ? ev.getY(pointerIndex) : ev.getX(pointerIndex);
+                final float posDiff = pos - mLastMotionPos;
+                mLastMotionPos = pos;
                 if (!isDragged()) {
-                    boolean canScrollUp, canScrollDown;
-                    final int offset = super.computeVerticalScrollOffset();
-                    final int range = super.computeVerticalScrollRange() - super.computeVerticalScrollExtent();
+                    boolean canScrollUpOrLeft, canScrollDownOrRight;
+                    final int offset = mOrientation == VERTICAL ?
+                            super.computeVerticalScrollOffset() :
+                            super.computeHorizontalScrollOffset();
+                    final int range = mOrientation == VERTICAL ?
+                            super.computeVerticalScrollRange() - super.computeVerticalScrollExtent() :
+                            super.computeHorizontalScrollRange() - super.computeHorizontalScrollExtent();
                     if (range == 0) {
-                        canScrollDown = canScrollUp = false;
+                        canScrollDownOrRight = canScrollUpOrLeft = false;
                     } else {
-                        canScrollUp = offset > 0;
-                        canScrollDown = offset < (range - 1);
+                        canScrollUpOrLeft = offset > 0;
+                        canScrollDownOrRight = offset < (range - 1);
                     }
-                    if (canScrollUp && canScrollDown) {
+                    if (canScrollUpOrLeft && canScrollDownOrRight) {
                         break;
                     }
-                    if ((Math.abs(yDiff) > mTouchSlop)) {
+                    if ((Math.abs(posDiff) > mTouchSlop)) {
                         boolean isOverScroll = false;
-                        if (!canScrollUp && yDiff > 0) {
-                            setState(STATE_DRAG_TOP);
+                        if (!canScrollUpOrLeft && posDiff > 0) {
+                            setState(STATE_DRAG_TOP_OR_LEFT);
                             isOverScroll = true;
-                        } else if (!canScrollDown && yDiff < 0) {
-                            setState(STATE_DRAG_BOTTOM);
+                        } else if (!canScrollDownOrRight && posDiff < 0) {
+                            setState(STATE_DRAG_BOTTOM_OR_RIGHT);
                             isOverScroll = true;
                         }
                         if (isOverScroll) {
@@ -171,7 +178,7 @@ public class SpringRecyclerView extends TempRecyclerView {
         final int action = MotionEventCompat.getActionMasked(ev);
         switch (action) {
             case MotionEvent.ACTION_DOWN:
-                mLastMotionY = ev.getY();
+                mLastMotionPos = mOrientation == VERTICAL ? ev.getY() : ev.getX();
                 mActivePointerId = ev.getPointerId(0);
                 break;
             case MotionEvent.ACTION_MOVE: {
@@ -182,31 +189,34 @@ public class SpringRecyclerView extends TempRecyclerView {
                 if (pointerIndex < 0) {
                     break;
                 }
-                final float y = ev.getY(pointerIndex);
-                final float yDiff = y - mLastMotionY;
-                mLastMotionY = y;
+                final float pos = mOrientation == VERTICAL ? ev.getY(pointerIndex) : ev.getX(pointerIndex);
+                final float posDiff = pos - mLastMotionPos;
+                mLastMotionPos = pos;
                 if (!isDragged()) {
-                    boolean canScrollUp, canScrollDown;
-                    final int offset = super.computeVerticalScrollOffset();
-                    final int range = super.computeVerticalScrollRange()
-                            - super.computeVerticalScrollExtent();
+                    boolean canScrollUpOrLeft, canScrollDownOrRight;
+                    final int offset = mOrientation == VERTICAL ?
+                            super.computeVerticalScrollOffset() :
+                            super.computeHorizontalScrollOffset();
+                    final int range = mOrientation == VERTICAL ?
+                            super.computeVerticalScrollRange() - super.computeVerticalScrollExtent() :
+                            super.computeHorizontalScrollRange() - super.computeHorizontalScrollExtent();
                     if (range == 0) {
-                        canScrollDown = canScrollUp = false;
+                        canScrollDownOrRight = canScrollUpOrLeft = false;
                     } else {
-                        canScrollUp = offset > 0;
-                        canScrollDown = offset < (range - 1);
+                        canScrollUpOrLeft = offset > 0;
+                        canScrollDownOrRight = offset < (range - 1);
                     }
-                    if (canScrollUp && canScrollDown) {
+                    if (canScrollUpOrLeft && canScrollDownOrRight) {
                         break;
                     }
 
-                    if ((Math.abs(yDiff) >= mTouchSlop)) {
+                    if ((Math.abs(posDiff) >= mTouchSlop)) {
                         boolean isOverScroll = false;
-                        if (!canScrollUp && yDiff > 0) {
-                            setState(STATE_DRAG_TOP);
+                        if (!canScrollUpOrLeft && posDiff > 0) {
+                            setState(STATE_DRAG_TOP_OR_LEFT);
                             isOverScroll = true;
-                        } else if (!canScrollDown && yDiff < 0) {
-                            setState(STATE_DRAG_BOTTOM);
+                        } else if (!canScrollDownOrRight && posDiff < 0) {
+                            setState(STATE_DRAG_BOTTOM_OR_RIGHT);
                             isOverScroll = true;
                         }
                         if (isOverScroll) {
@@ -225,11 +235,11 @@ public class SpringRecyclerView extends TempRecyclerView {
                     }
                 }
                 if (isDragged()) {
-                    mOffsetY += yDiff;
-                    // correct mOffsetY
-                    if ((isDraggedTop() && mOffsetY <= 0) || (isDraggedBottom() && mOffsetY >=0)) {
+                    mOffset += posDiff;
+                    // correct mOffset
+                    if ((isDraggedTopOrLeft() && mOffset <= 0) || (isDraggedBottomOrRight() && mOffset >=0)) {
                         setState(STATE_NORMAL);
-                        mOffsetY = 0;
+                        mOffset = 0;
                         // return to touch item
                         MotionEvent fakeDownEvent = MotionEvent.obtain(ev);
                         fakeDownEvent.setAction(MotionEvent.ACTION_DOWN);
@@ -242,7 +252,7 @@ public class SpringRecyclerView extends TempRecyclerView {
             }
             case MotionEventCompat.ACTION_POINTER_DOWN: {
                 final int index = MotionEventCompat.getActionIndex(ev);
-                mLastMotionY = ev.getY(index);
+                mLastMotionPos = mOrientation == VERTICAL ? ev.getY(index) : ev.getX(index);
                 mActivePointerId = ev.getPointerId(index);
                 break;
             }
@@ -251,15 +261,15 @@ public class SpringRecyclerView extends TempRecyclerView {
                 onSecondaryPointerUp(ev);
                 final int index = ev.findPointerIndex(mActivePointerId);
                 if (index != -1) {
-                    mLastMotionY = ev.getY(index);
+                    mLastMotionPos = mOrientation == VERTICAL ? ev.getY(index) : ev.getX(index);
                 }
                 break;
             }
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL: {
-                if (mOffsetY != 0) {
+                if (mOffset != 0) {
                     // Spring back
-                    mFrom = mOffsetY;
+                    mFrom = mOffset;
                     startReleaseAnimation();
                     setState(STATE_SPRING_BACK);
                 }
@@ -276,10 +286,16 @@ public class SpringRecyclerView extends TempRecyclerView {
         } else {
             final int sc = canvas.save();
 
-            // scale the canvas vertically
-            final int viewHeight = getHeight();
-            final float scaleY = 1 + Math.abs(mOffsetY) / viewHeight * 0.3f;
-            canvas.scale(1, scaleY, 0, mOffsetY >= 0 ? 0 : (viewHeight + getScrollY()));
+            // scale the canvas
+            if (mOrientation == VERTICAL) {
+                final int viewHeight = getHeight();
+                final float scaleY = 1 + Math.abs(mOffset) / viewHeight * 0.3f;
+                canvas.scale(1, scaleY, 0, mOffset >= 0 ? 0 : (viewHeight + getScrollY()));
+            } else {
+                final int viewWidth = getWidth();
+                final float scaleX = 1 + Math.abs(mOffset) / viewWidth * 0.3f;
+                canvas.scale(scaleX, 1, mOffset >= 0 ? 0 : (viewWidth + getScrollX()), 0);
+            }
 
             super.draw(canvas);
             canvas.restoreToCount(sc);
@@ -289,7 +305,8 @@ public class SpringRecyclerView extends TempRecyclerView {
     @Override
     protected void absorbGlows(int velocityX, int velocityY) {
         if (mEnableSpringEffectWhenFling && mState != STATE_FLING) {
-            mFrom = - velocityY * (1f/60);
+            final int v = mOrientation == VERTICAL ? velocityY : velocityX;
+            mFrom = -v * (1f/60);
             startFlingAnimation();
             setState(STATE_FLING);
         }
@@ -299,9 +316,9 @@ public class SpringRecyclerView extends TempRecyclerView {
         springAnimation = new Animation() {
             @Override
             protected void applyTransformation(float interpolatedTime, Transformation t) {
-                mOffsetY = mFrom * interpolatedTime;
+                mOffset = mFrom * interpolatedTime;
                 if (hasEnded()) {
-                    mOffsetY = 0;
+                    mOffset = 0;
                     setState(STATE_NORMAL);
                 }
                 invalidate();
@@ -342,15 +359,15 @@ public class SpringRecyclerView extends TempRecyclerView {
     }
 
     private boolean isDragged() {
-        return mState == STATE_DRAG_TOP || mState == STATE_DRAG_BOTTOM;
+        return mState == STATE_DRAG_TOP_OR_LEFT || mState == STATE_DRAG_BOTTOM_OR_RIGHT;
     }
 
-    private boolean isDraggedTop() {
-        return mState == STATE_DRAG_TOP;
+    private boolean isDraggedTopOrLeft() {
+        return mState == STATE_DRAG_TOP_OR_LEFT;
     }
 
-    private boolean isDraggedBottom() {
-        return mState == STATE_DRAG_BOTTOM;
+    private boolean isDraggedBottomOrRight() {
+        return mState == STATE_DRAG_BOTTOM_OR_RIGHT;
     }
 
     private void onSecondaryPointerUp(MotionEvent ev) {
@@ -361,6 +378,14 @@ public class SpringRecyclerView extends TempRecyclerView {
             // active pointer and adjust accordingly.
             final int newPointerIndex = pointerIndex == 0 ? 1 : 0;
             mActivePointerId = ev.getPointerId(newPointerIndex);
+        }
+    }
+
+    @Override
+    public void setLayoutManager(LayoutManager layout) {
+        super.setLayoutManager(layout);
+        if (layout != null) {
+            mOrientation = layout.canScrollHorizontally() ? HORIZONTAL : VERTICAL;
         }
     }
 
