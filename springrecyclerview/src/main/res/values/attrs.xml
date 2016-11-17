@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="SpringRecyclerView">
+        <attr name="srv_enableSpringEffectWhenDrag" format="boolean"/>
+        <attr name="srv_enableSpringEffectWhenFling" format="boolean"/>
+        <attr name="srv_releaseBackAnimDuration" format="integer"/>
+        <attr name="srv_flingBackAnimDuration" format="integer"/>
+    </declare-styleable>
+</resources>
