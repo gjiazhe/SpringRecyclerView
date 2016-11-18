@@ -7,9 +7,7 @@ ListView Version : https://github.com/gjiazhe/SpringListView
 ## Screenshot
 
 <img src="screenshots/1.gif" width="270">
-
 <img src="screenshots/2.gif" width="270">
-
 <img src="screenshots/3.gif" width="270">
 
 ## Include SpringRecyclerView to Your Project
