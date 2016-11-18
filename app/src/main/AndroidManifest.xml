@@ -15,6 +15,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".VerticalActivity" />
+        <activity android:name=".HorizontalActivity" />
+        <activity android:name=".StaggeredGridLayoutActivity"></activity>
     </application>
 
 </manifest>
