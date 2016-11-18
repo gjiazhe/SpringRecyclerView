@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply plugin: 'com.novoda.bintray-release'
 
 android {
     compileSdkVersion 25
@@ -9,9 +10,6 @@ android {
         targetSdkVersion 25
         versionCode 1
         versionName "1.0"
-
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-
     }
     buildTypes {
         release {
@@ -25,4 +23,13 @@ dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.android.support:appcompat-v7:25.0.1'
     compile 'com.android.support:recyclerview-v7:25.0.1'
+}
+
+publish {
+    userOrg = 'gjiazhe'
+    groupId = 'com.gjiazhe'
+    artifactId = 'springrecyclerview'
+    publishVersion = '1.0'
+    desc = ''
+    website = 'https://github.com/gjiazhe/SpringRecyclerView'
 }
