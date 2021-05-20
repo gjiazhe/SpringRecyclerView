@@ -16,7 +16,7 @@ With gradle:
 
 ```groovy
 dependencies {
-   compile 'com.gjiazhe:SpringRecyclerView:1.0'
+   implementation 'com.gjiazhe:springrecyclerview:1.0'
 }
 ```
 ## Use SpringRecyclerView in Layout Files
